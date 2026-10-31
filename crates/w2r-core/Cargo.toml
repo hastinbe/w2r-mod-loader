@@ -1,6 +1,6 @@
 [package]
 name = "w2r-core"
-version = "1.1.4"
+version = "1.2.0"
 edition.workspace = true
 rust-version.workspace = true
 description = "In-game plugin host for Warcraft II Remastered (32-bit cdylib, version.dll proxy)"
