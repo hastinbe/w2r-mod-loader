@@ -1,6 +1,6 @@
 [package]
 name = "w2r-loader-gui"
-version = "1.3.0"
+version = "1.3.1"
 edition.workspace = true
 rust-version.workspace = true
 description = "W2R Mod Loader: desktop app that installs mods and plugins for Warcraft II Remastered"

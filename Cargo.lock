@@ -2598,7 +2598,7 @@ version = "1.0.0"
 
 [[package]]
 name = "w2r-loader-cli"
-version = "1.3.0"
+version = "1.3.1"
 dependencies = [
  "clap",
  "w2r-formats",
@@ -2609,7 +2609,7 @@ dependencies = [
 
 [[package]]
 name = "w2r-loader-gui"
-version = "1.3.0"
+version = "1.3.1"
 dependencies = [
  "eframe",
  "png",
@@ -2621,7 +2621,7 @@ dependencies = [
 
 [[package]]
 name = "w2r-loader-lib"
-version = "1.3.0"
+version = "1.3.1"
 dependencies = [
  "sha2",
  "ureq",
