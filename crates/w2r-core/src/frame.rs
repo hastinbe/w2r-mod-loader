@@ -138,6 +138,8 @@ fn on_window(name: *const c_char, _opened: i32) {
             );
         }
     });
+    #[cfg(target_arch = "x86")]
+    crate::graphicsmode::watch();
     let name = if name.is_null() {
         None
     } else {
