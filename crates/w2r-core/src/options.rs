@@ -567,6 +567,13 @@ impl Widgets for GameWidgets<'_> {
 
 thread_local! {
     static PAUSE_MS: Cell<u64> = const { Cell::new(0) };
+    /// When the settings screen was last drawn, either entry.
+    static SCREEN_MS: Cell<u64> = const { Cell::new(0) };
+}
+
+/// The settings screen is open: it was drawn within the re-entry gap.
+pub fn settings_screen_open() -> bool {
+    crate::chat::now_ms().saturating_sub(SCREEN_MS.with(|t| t.get())) < REENTRY_GAP_MS
 }
 
 static ORIGINAL: AtomicUsize = AtomicUsize::new(0);
@@ -627,6 +634,7 @@ unsafe extern "C" fn detour(variant: i32) {
             crate::session::host_fault("settings screen", &fault);
         }
         if drawn {
+            SCREEN_MS.with(|t| t.set(now));
             crate::settingsscreen::finish(variant);
             return;
         }

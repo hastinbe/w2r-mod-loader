@@ -92,6 +92,11 @@ const PLACEMENTS: &[Placement] = &[
     p("resolution_height", "Preferences", "Display", "Resolution Height",
       "Height in pixels, 480 to 2160. A value outside that range falls back to 1080, it is not clamped.",
       true),
+    // Bit 0x10 of the flags: the mode the next launch starts in, which F5 and the HUD button
+    // also set (graphicsmode.rs). The mode follows on the next match frame (graphicsmode.rs).
+    p("using_classic", "Preferences", "Display", "Classic Graphics",
+      "Uses classic graphics instead of HD. F5 and the HUD button change it too.",
+      false),
     p("interface", "Preferences", "Mouse", "option_preference_mouse_interface",
       "Mouse scheme: on is the Warcraft II scheme, off the Warcraft I one.", false),
     // Works (RebuildMouseCursors applies it), but hidden by choice.
@@ -103,9 +108,6 @@ const PLACEMENTS: &[Placement] = &[
       "How the interface is scaled: Automatic, Fixed, or Classic.", false),
     p("ui_scale_fixed", "Preferences", "UI Scale", "UI Scale (Fixed)",
       "The interface scale factor, 1 to 4. Used only when UI scale is set to Fixed.", false),
-    p("using_classic", "Preferences", "UI Scale", "Classic UI Scale",
-      "A flag the game groups with classic UI scaling. What it changes on its own is not established.",
-      false),
     p("ui_unlock_aspect", "Preferences", "UI Scale", "Use Window Aspect Ratio",
       "Unlocks the UI's aspect ratio so it follows the window instead of a fixed one.", false),
     // The table's only string. There is no writer for it.
@@ -256,8 +258,7 @@ pub fn derived_set(key: &str, flags: u32, i: i64) -> u32 {
     }
 }
 
-/// Keys registered but not shown: the bits the derived settings replace, and `using_classic`,
-/// which the stock menu does not show.
+/// Keys registered but not shown: the bits the derived settings replace.
 const HIDDEN_AFTER_DERIVED: &[&str] = &[
     "show_healthbars",
     "healthbars_only_when_damaged",
@@ -265,7 +266,6 @@ const HIDDEN_AFTER_DERIVED: &[&str] = &[
     "resourcebar_align_right",
     "portrait_style_scaled",
     "portrait_style_cropped",
-    "using_classic",
 ];
 
 /// The game's settings, from the table's entries, plus the derived settings. A key missing from
@@ -556,6 +556,14 @@ pub mod game {
                             (self.apply_grid_keys)(i8::from(v != 0))
                         }
                     }
+                    // The game reads the bit at launch; the graphics hook switches the mode
+                    // to it at the next match.
+                    #[cfg(windows)]
+                    "using_classic" => {
+                        if let Some(e) = self.find("using_classic") {
+                            crate::graphicsmode::choose(Self::read_u32(&e) & e.max_or_mask != 0)
+                        }
+                    }
                     "ui_unlock_aspect" => {
                         if let Some(e) = self.find("ui_unlock_aspect") {
                             (self.apply_ui_aspect)(u32::from(
@@ -718,7 +726,8 @@ mod tests {
         ]);
         let by = |k: &str| defs.iter().find(|d| d.key == k).unwrap();
         assert!(by("show_healthbars").hidden);
-        assert!(by("using_classic").hidden);
+        assert!(!by("using_classic").hidden);
+        assert_eq!(by("using_classic").subcategory, "Display");
         assert!(!by("music").hidden);
         assert_eq!(by("healthbar_mode").kind, Kind::Choice);
         assert_eq!(by("resourcebar_align").choices.len(), 3);
