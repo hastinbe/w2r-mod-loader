@@ -29,17 +29,10 @@ repository, see -PluginsRepo; id w2r-chat; game.read
 and hooks.raw approved). It hooks the game's in-match message functions, so it is a "dangerous"
 plugin and is in the simulation fingerprint.
 
-.PARAMETER WithBlackRecolor
-Also builds and installs the black recolor plugin (plugins/w2r-black-recolor in the w2r-plugins
-repository, see -PluginsRepo; id w2r-black-recolor; game.read and hooks.raw approved). It draws
-the black player pink or cyan on your screen only, and is a "dangerous" plugin (hook plus game
-memory writes). Pass it together with -WithChat to install both: the state file lists only what
-the run installs.
-
 .PARAMETER WithAllPlugins
 Builds and installs every plugin under plugins\ in the w2r-plugins repository (see -PluginsRepo),
 each with its own plugin.json and the capabilities that manifest asks for approved. Covers
--WithChat and -WithBlackRecolor, which need not be passed with it.
+-WithChat, which need not be passed with it.
 
 .PARAMETER Simulation
 Marks the basic_plugin fixture affects_simulation, so the session's simulation fingerprint is
@@ -59,7 +52,6 @@ param(
     [switch]$WithCrasher,
     [switch]$WithHostCheck,
     [switch]$WithChat,
-    [switch]$WithBlackRecolor,
     [switch]$WithAllPlugins,
     [switch]$Simulation,
     [string]$PluginsRepo = "",
@@ -123,24 +115,10 @@ if ($WithChat) {
     }
 }
 
-if ($WithBlackRecolor) {
-    if (-not (Test-Path (Join-Path $PluginsRepo "plugins\w2r-black-recolor"))) {
-        throw "w2r-black-recolor not found in $PluginsRepo; clone w2r-plugins next to this repository or pass -PluginsRepo"
-    }
-    Push-Location $PluginsRepo
-    try {
-        cargo build --release -p w2r-black-recolor --target i686-pc-windows-msvc
-        if ($LASTEXITCODE -ne 0) { throw "black recolor plugin build failed" }
-    } finally {
-        Pop-Location
-    }
-}
-
 $allPlugins = @()
 if ($WithAllPlugins) {
-    $allPlugins = @(Get-ChildItem (Join-Path $PluginsRepo "plugins") -Directory | Where-Object { $_.Name -notin @("w2r-chat", "w2r-black-recolor") } | ForEach-Object { $_.Name })
+    $allPlugins = @(Get-ChildItem (Join-Path $PluginsRepo "plugins") -Directory | Where-Object { $_.Name -ne "w2r-chat" } | ForEach-Object { $_.Name })
     if (-not $WithChat) { $allPlugins += "w2r-chat" }
-    if (-not $WithBlackRecolor) { $allPlugins += "w2r-black-recolor" }
     Push-Location $PluginsRepo
     try {
         foreach ($id in $allPlugins) {
@@ -214,10 +192,6 @@ if ($WithCrasher) { $entries += Install-Fixture "crash-plugin" "crash_plugin" @(
 if ($WithChat) {
     $release = Join-Path $PluginsRepo "target\i686-pc-windows-msvc\release"
     $entries += Install-Fixture "w2r-chat" "w2r_chat" @("game.read", "hooks.raw") $false $release "Luxray997 (ported by Beau Hastings)" "In-match chat history with channels and player colours (port of wc2r-plus chat.cpp by Luxray997)."
-}
-if ($WithBlackRecolor) {
-    $release = Join-Path $PluginsRepo "target\i686-pc-windows-msvc\release"
-    $entries += Install-Fixture "w2r-black-recolor" "w2r_black_recolor" @("game.read", "hooks.raw") $false $release "Beau Hastings" "Draws the black player pink or cyan on your screen (port of the Black2Pink option of wc2r-plus by Luxray997)."
 }
 # A plugin switched off in the GUI stays off.
 $disabledBefore = @()

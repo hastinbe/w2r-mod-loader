@@ -141,7 +141,7 @@ taken at match start.
 - **Colours** (8, RGB): (196,40,40), (48,72,200), (0,152,152), (128,48,168), (232,132,24),
   (32,32,32), (236,236,236), (232,212,48). Index 5 is the black player and is drawn as
   (0x20,0x20,0x20) grey in chat. wc2r-plus can recolour black (its "Black2Pink" option); that is the
-  separate `w2r-black-recolor` plugin. Chat reads the black entry of `TeamColourRgba` each frame:
+  separate `w2r-unit-color` plugin (which replaced `w2r-black-recolor`). Chat reads the black entry of `TeamColourRgba` each frame:
   the stock value keeps the grey, any other value (a recolour) is used as is.
 - **Team mask** (for `[Team]`): computed once at match start, as `TeammatesAtMatchStart` does: the
   bit of every other in-match player whose diplomacy entry from the local player is non-zero and

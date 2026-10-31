@@ -192,13 +192,13 @@ pub struct App {
 /// Plugins offered by "Install recommended plugins": every published plugin except the dev and
 /// niche ones (hello-example, w2r-countdown-sound, w2r-lobby-log, w2r-sdk-probe).
 const RECOMMENDED: &[&str] = &[
-    "w2r-black-recolor",
     "w2r-chat",
     "w2r-map-preview",
     "w2r-observer",
     "w2r-player-colors",
     "w2r-random-map",
     "w2r-remember-settings",
+    "w2r-unit-color",
 ];
 
 const SELF_UPDATE_LABEL: &str = "Updating the manager";
