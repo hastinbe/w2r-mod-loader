@@ -59,7 +59,7 @@ mod win {
     use std::panic::{AssertUnwindSafe, catch_unwind};
     use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 
-    use w2r_abi::{W2R_LOG_ERROR, W2R_LOG_INFO};
+    use w2r_abi::{W2R_LOG_DEBUG, W2R_LOG_ERROR, W2R_LOG_INFO, W2R_LOG_WARN};
 
     use super::{CLASSIC_BIT, flags_after, mode_text, next_launch_text};
     use crate::hooks::{self, Owner};
@@ -79,9 +79,9 @@ mod win {
     /// The mode and the bit last logged, `mode << 1 | bit`; `u32::MAX` before the first.
     static SEEN: AtomicU32 = AtomicU32::new(u32::MAX);
 
-    fn line(text: &str) {
+    fn line(level: u32, text: &str) {
         if let Some(s) = crate::entry::startup() {
-            s.log.line(W2R_LOG_INFO, "host", text);
+            s.log.line(level, "host", text);
         }
     }
 
@@ -105,19 +105,28 @@ mod win {
                         (mode, after)
                     };
                     SEEN.store(seen(mode, after), Ordering::Relaxed);
-                    line(&format!(
-                        "graphics: toggled ({}); next launch {}",
-                        mode_text(mode),
-                        next_launch_text(after)
-                    ));
+                    line(
+                        W2R_LOG_INFO,
+                        &format!(
+                            "graphics: toggled ({}); next launch {}",
+                            mode_text(mode),
+                            next_launch_text(after)
+                        ),
+                    );
                     let persist = PERSIST.load(Ordering::Relaxed);
                     if persist != 0 {
-                        line(&format!(
-                            "graphics: saving settings; next launch {}",
-                            next_launch_text(after)
-                        ));
+                        line(
+                            W2R_LOG_INFO,
+                            &format!(
+                                "graphics: saving settings; next launch {}",
+                                next_launch_text(after)
+                            ),
+                        );
                         // SAFETY: the game's ini writer (cdecl, no arguments), the same call the
-                        // options screen makes, on the game's thread.
+                        // options screen makes, on the game's thread. It writes the flags word and
+                        // never reads `GraphicsMode`, so a toggle still in progress (mode 2 or 3)
+                        // cannot end up in the ini (Ghidra: FUN_0058a230 and what it calls have
+                        // no reference to 0x8cb9c0).
                         let persist: PersistFn = unsafe { core::mem::transmute(persist) };
                         unsafe { persist() };
                     }
@@ -142,12 +151,22 @@ mod win {
             )
         };
         let now = seen(m, f);
-        if SEEN.swap(now, Ordering::Relaxed) != now {
-            line(&format!(
-                "graphics: mode {}; next launch {}",
-                mode_text(m),
-                next_launch_text(f)
-            ));
+        let before = SEEN.swap(now, Ordering::Relaxed);
+        if before != now {
+            // The first call says what this launch started in; later changes are for debugging.
+            let level = if before == u32::MAX {
+                W2R_LOG_INFO
+            } else {
+                W2R_LOG_DEBUG
+            };
+            line(
+                level,
+                &format!(
+                    "graphics: mode {}; next launch {}",
+                    mode_text(m),
+                    next_launch_text(f)
+                ),
+            );
         }
     }
 
@@ -169,7 +188,7 @@ mod win {
         match symbols.address("PersistSettings") {
             Some(persist) => PERSIST.store(persist, Ordering::Release),
             None => log.line(
-                W2R_LOG_ERROR,
+                W2R_LOG_WARN,
                 "host",
                 "graphics button: PersistSettings is missing; only a direct exit saves the choice",
             ),
