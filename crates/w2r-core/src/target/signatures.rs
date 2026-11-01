@@ -7,11 +7,12 @@
 //! the text) and the post-effect draw (0x63b0e0, where mode 1 and 2 pick the programs at +0x3c and
 //! +0x40), and for the pause box "VictoryPopupBuild" (0x547d70, its head through the dialog skin
 //! manager operand) and "DialogPopupRect" (0x547320, whole); add them to gen_signatures.py before
-//! regenerating. Personal build: "PauseButtonAction" (0x4f2740, whole) for the resume countdown.
+//! regenerating. Personal build: "PauseButtonAction" (0x4f2740, whole) for the resume countdown,
+//! and "PlayUiSound" (0x4f9900, whole) for its tick.
 
 use super::{RelocSlot, Signature};
 
-pub const COUNT: usize = 206;
+pub const COUNT: usize = 207;
 
 pub static SIGNATURES: &[Signature] = &[
     Signature {
@@ -4448,6 +4449,31 @@ pub static SIGNATURES: &[Signature] = &[
             RelocSlot {
                 offset: 30,
                 static_addr: 0x0091c596,
+            },
+        ],
+    },
+    Signature {
+        what: "PlayUiSound",
+        static_addr: 0x004f9900,
+        bytes: &[
+            0x55, 0x8b, 0xec, 0x83, 0x3d, 0x7c, 0x9b, 0x93, 0x00, 0x00, 0x74, 0x35, 0xa1, 0xb8,
+            0x4c, 0x96, 0x00, 0x85, 0xc0, 0x74, 0x2c, 0x6b, 0xc8, 0x63, 0xb8, 0x1f, 0x85, 0xeb,
+            0x51, 0x6a, 0xff, 0x6a, 0x00, 0xf7, 0xe9, 0xc1, 0xfa, 0x05, 0x8b, 0xc2, 0xc1, 0xe8,
+            0x1f, 0x03, 0xc2, 0xff, 0x34, 0x85, 0xc8, 0x1a, 0x84, 0x00, 0xff, 0x75, 0x08, 0xe8,
+            0xd4, 0xfd, 0xff, 0xff, 0x83, 0xc4, 0x10, 0x5d, 0xc3, 0x33, 0xc0, 0x5d, 0xc3,
+        ],
+        relocs: &[
+            RelocSlot {
+                offset: 5,
+                static_addr: 0x00939b7c,
+            },
+            RelocSlot {
+                offset: 13,
+                static_addr: 0x00964cb8,
+            },
+            RelocSlot {
+                offset: 48,
+                static_addr: 0x00841ac8,
             },
         ],
     },
