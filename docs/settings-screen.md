@@ -65,6 +65,11 @@ flag bits each (health bars, resource bar alignment, portrait style); their bits
 and hidden so the ini still round-trips them. Keys the stock menu never shows are registered and
 hidden (the resolution pair, `mouse_size` on request, `name`, `tipnum`, the camera cluster pair,
 the two DOS-era keys). An unknown key is shown under Advanced / Unsorted rather than dropped.
+`using_classic` (flag bit 0x10, the graphics mode the next launch starts in, which F5 and the HUD
+button also set) is shown as Preferences / Display / **Classic Graphics**; a change is passed
+to the graphics hook (`graphicsmode.rs`), which, on the first frame of the next match (any kind,
+with the options screen closed), switches the mode once if it differs, as F5 would. The
+next launch starts in it too.
 
 The appliers, exactly as the stock tabs call them: `music` (ApplyMusicVolume with the scalar
 block), `remastered_music` (RestartMusic), `speed` (ApplyGameSpeed), `mouse_size`
