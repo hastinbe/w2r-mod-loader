@@ -19,8 +19,8 @@ pub const DEFAULT_SUBCATEGORY: &str = "General";
 
 /// Heading order for a category, where a plugin's heading should sit between the host's own
 /// (plugins register after the host, so by registration order theirs come last). Personal build:
-/// Pause Overlay's "Pause UI" goes right after "Fixes" in the UI category.
-const HEADING_ORDER: &[(&str, &[&str])] = &[("UI", &["Enhanced UIs", "Fixes", "Pause UI", "APM Counter"])];
+/// Pause Pro's "Pause Pro UI" goes right after "Fixes" in the UI category.
+const HEADING_ORDER: &[(&str, &[&str])] = &[("UI", &["Enhanced UIs", "Fixes", "Pause Pro UI", "APM Counter"])];
 /// The `active_when` prefix that points at one of the host's settings instead of the plugin's own.
 pub const HOST_PREFIX: &str = "host:";
 
@@ -764,7 +764,7 @@ pub fn validate(
             return Err(W2R_E_INVALID);
         };
         // Personal build: `key!=N` (or `key=N`) on an earlier bool, int or choice, and `:V` for
-        // what a checkbox row shows while greyed (Pause Overlay: Pause Box locked on with Recolor).
+        // what a checkbox row shows while greyed (Pause Pro: Pause Box locked on with Recolor).
         let Some(e) = earlier.iter().find(|e| e.key == key) else {
             return Err(W2R_E_NOT_FOUND);
         };
@@ -929,14 +929,14 @@ mod tests {
             (Owner::Host, "hide_scrollbar_arrows", "Fixes"),
             (Owner::Host, "apm_display", "APM Counter"),
             (plugin("w2r-other"), "x", "Other Plugin"),
-            (plugin("w2r-pause-overlay"), "paused_screen", "Pause UI"),
-            (plugin("w2r-pause-overlay"), "pause_box", "Pause UI"),
+            (plugin("w2r-pause-pro"), "paused_screen", "Pause Pro UI"),
+            (plugin("w2r-pause-pro"), "pause_box", "Pause Pro UI"),
         ] {
             r.register(SettingDef::new(owner, key, Kind::Bool, "UI", sub), Value::Int(0));
         }
         let names: Vec<String> = r.groups("ui").into_iter().map(|(n, _)| n).collect();
-        assert_eq!(names, ["Enhanced UIs", "Fixes", "Pause UI", "APM Counter", "Other Plugin"]);
-        assert_eq!(r.groups("UI")[2].1.len(), 2, "both Pause UI settings under the one heading");
+        assert_eq!(names, ["Enhanced UIs", "Fixes", "Pause Pro UI", "APM Counter", "Other Plugin"]);
+        assert_eq!(r.groups("UI")[2].1.len(), 2, "both Pause Pro UI settings under the one heading");
         let chat: Vec<String> = sample().groups("Chat").into_iter().map(|(n, _)| n).collect();
         assert_eq!(chat, ["Behavior", "Style"], "other categories keep registration order");
     }
