@@ -6,7 +6,7 @@ Developer install of the W2R Mod Loader host into the game, with the basic fixtu
 Builds w2r_core.dll (release, i686) and copies it into the game's x86 folder as version.dll.
 Sets up the host root under Saved Games\Warcraft2Remastered\w2r with the basic_plugin fixture
 (plugin.json, DLL, pinned hash, chat.write approved). Then launch the game, enter a multiplayer
-lobby, and read logs\w2r.log: the build guard should report PASSED (197/197) and the plugin
+lobby, and read logs\w2r.log: the build guard should report PASSED (206/206) and the plugin
 should log "basic from basic_plugin".
 
 .PARAMETER Uninstall

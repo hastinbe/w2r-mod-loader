@@ -136,8 +136,25 @@ pub fn set_enabled(on: bool) {
 
 #[cfg(target_arch = "x86")]
 pub use live::{
-    broadcast, deliver, in_networked_match, install, is_out, local_player, on_match_start, player_of_net, poll,
+    broadcast, deliver, in_networked_match, install, is_out, local_player, match_peer, on_match_start,
+    player_of_net, poll, send_in_match,
 };
+
+/// Without the game (tests): never in a match, so plugin messages stay lobby only.
+#[cfg(not(target_arch = "x86"))]
+pub fn in_networked_match() -> bool {
+    false
+}
+
+#[cfg(not(target_arch = "x86"))]
+pub fn match_peer(_net: u32) -> bool {
+    false
+}
+
+#[cfg(not(target_arch = "x86"))]
+pub fn send_in_match(_only: Option<u32>, _msg: &[u8]) -> usize {
+    0
+}
 
 #[cfg(target_arch = "x86")]
 mod live {
@@ -346,6 +363,38 @@ mod live {
         }
         let p = guarded(|| (g.u32_at(g.player_by_net, net as usize) & 0xff) as u8).ok()?;
         (p < 8).then_some(p)
+    }
+
+    /// Net slot `n` is another machine in the match that runs the mod (announced in the lobby just
+    /// left, seated, in the match, not gone).
+    pub fn match_peer(n: u32) -> bool {
+        let Some(g) = GAME.get() else { return false };
+        let n = n as usize;
+        n < 8
+            && guarded(|| {
+                crate::ping::roster() & (1 << n) != 0
+                    && g.u32_at(g.lobby_by_net, n) & 0xff < NO_SEAT
+                    && g.u32_at(g.turn_flags, n) & FLAG_IN_MATCH != 0
+                    && g.u32_at(g.left_flags, n) == 0
+            })
+            .unwrap_or(false)
+    }
+
+    /// Sends `msg` to the machines `match_peer` accepts (all of them, or only net slot `only`);
+    /// how many it went to. Plugin messages during a match.
+    pub fn send_in_match(only: Option<u32>, msg: &[u8]) -> usize {
+        let Some(g) = GAME.get() else { return 0 };
+        let mut sent = 0;
+        for n in 0..8u32 {
+            if only.is_some_and(|o| o != n) || !match_peer(n) {
+                continue;
+            }
+            // SAFETY: the game's own send, a reliable message to one connected peer.
+            if guarded(|| unsafe { (g.send)(n, msg.as_ptr(), msg.len() as u32) }).is_ok() {
+                sent += 1;
+            }
+        }
+        sent
     }
 
     /// Sends `msg` to every other connected machine in the match that runs the mod.

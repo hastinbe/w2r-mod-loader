@@ -965,6 +965,28 @@ mod cb {
                 return W2R_E_INVALID;
             }
             let services = &slot.shared.services;
+            // In a networked match, plugin messages go to the other machines
+            // that run the mod, over the game's own send (as camera sharing's do).
+            if !services.presence.in_lobby() && crate::camerashare::in_networked_match() {
+                let only = (slot_or_all != W2R_SLOT_ALL).then_some(slot_or_all);
+                if only.is_some_and(|n| !crate::camerashare::match_peer(n)) {
+                    return W2R_E_STATE;
+                }
+                let now = chat::now_ms();
+                if !slot.peer_rate.borrow_mut().would_allow(now)
+                    || !slot.shared.peer_rate.borrow_mut().would_allow(now)
+                {
+                    return W2R_E_RATE;
+                }
+                let bytes = unsafe { core::slice::from_raw_parts(payload.ptr, payload.len as usize) };
+                let msg = peer::encode(slot.tag, bytes).expect("length checked");
+                if crate::camerashare::send_in_match(only, &msg) == 0 {
+                    return W2R_E_STATE;
+                }
+                slot.peer_rate.borrow_mut().allow(now);
+                slot.shared.peer_rate.borrow_mut().allow(now);
+                return W2R_OK;
+            }
             if !services.presence.in_lobby() || !services.transport.connected() {
                 return W2R_E_STATE;
             }
@@ -1737,6 +1759,7 @@ mod tests {
                 owner: settings::Owner::Plugin("w2r-chat".into()),
                 key: "channels".into(),
                 test: settings::Condition::On,
+                shown: None,
             })
         );
 

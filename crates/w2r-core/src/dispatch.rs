@@ -182,11 +182,14 @@ impl Registry {
     /// active, subscribed and allowed to receive (`net.send`), and the sender announced the
     /// handshake. Anything else is dropped (docs/abi.md). Returns whether it was delivered.
     pub fn dispatch_peer(&self, sender: u32, msg: PluginMessage<'_>) -> bool {
-        // Lobby only, in both directions (docs/abi.md): a message that arrives in a match is
-        // dropped even from an announced peer.
-        if !self.shared.services.presence.in_lobby()
-            || !self.shared.services.roster.announced(sender)
-        {
+        // In the lobby from an announced peer (docs/abi.md); also in a networked
+        // match from a machine that runs the mod (announced in the lobby just left, still in).
+        let in_lobby = self.shared.services.presence.in_lobby()
+            && self.shared.services.roster.announced(sender);
+        let in_match = !self.shared.services.presence.in_lobby()
+            && crate::camerashare::in_networked_match()
+            && crate::camerashare::match_peer(sender);
+        if !(in_lobby || in_match) {
             return false;
         }
         let Some(slot) = self.slots.iter().find(|s| s.tag == msg.tag) else {
