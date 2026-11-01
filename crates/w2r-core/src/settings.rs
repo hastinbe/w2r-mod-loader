@@ -16,6 +16,11 @@ use w2r_abi::{
 
 /// The subcategory a setting lands in when it names none.
 pub const DEFAULT_SUBCATEGORY: &str = "General";
+
+/// Heading order for a category, where a plugin's heading should sit between the host's own
+/// (plugins register after the host, so by registration order theirs come last). Personal build:
+/// Pause Overlay's "Pause UI" goes right after "Fixes" in the UI category.
+const HEADING_ORDER: &[(&str, &[&str])] = &[("UI", &["Enhanced UIs", "Fixes", "Pause UI", "APM Counter"])];
 /// The `active_when` prefix that points at one of the host's settings instead of the plugin's own.
 pub const HOST_PREFIX: &str = "host:";
 
@@ -417,8 +422,22 @@ impl Registry {
     }
 
     /// One category's shown settings, grouped by subcategory. Subcategories keep the order they
-    /// were first registered in, which keeps related settings together.
+    /// were first registered in, which keeps related settings together, except where
+    /// `HEADING_ORDER` places a heading a plugin registers between the host's own (personal
+    /// build).
     pub fn groups(&self, category: &str) -> Vec<(String, Vec<usize>)> {
+        let mut groups = self.groups_as_registered(category);
+        if let Some((_, order)) = HEADING_ORDER.iter().find(|(c, _)| c.eq_ignore_ascii_case(category)) {
+            let rank = |name: &str| {
+                order.iter().position(|o| o.eq_ignore_ascii_case(name)).unwrap_or(order.len())
+            };
+            // Stable: headings not listed keep their registration order, after the listed ones.
+            groups.sort_by_key(|(name, _)| rank(name));
+        }
+        groups
+    }
+
+    fn groups_as_registered(&self, category: &str) -> Vec<(String, Vec<usize>)> {
         let mut groups: Vec<(String, Vec<usize>)> = Vec::new();
         for (i, r) in self.records.iter().enumerate() {
             if r.def.hidden || !r.def.category.eq_ignore_ascii_case(category) {
@@ -843,6 +862,26 @@ mod tests {
         assert_eq!(g[0].1, vec![1, 4]);
         assert_eq!(g[1].0, "Style");
         assert_eq!(g[1].1, vec![2]);
+    }
+
+    #[test]
+    fn pause_ui_sits_after_fixes_whatever_the_registration_order() {
+        let mut r = Registry::new();
+        for (owner, key, sub) in [
+            (Owner::Host, "enhanced_create_screen", "Enhanced UIs"),
+            (Owner::Host, "hide_scrollbar_arrows", "Fixes"),
+            (Owner::Host, "apm_display", "APM Counter"),
+            (plugin("w2r-other"), "x", "Other Plugin"),
+            (plugin("w2r-pause-overlay"), "paused_screen", "Pause UI"),
+            (plugin("w2r-pause-overlay"), "pause_box", "Pause UI"),
+        ] {
+            r.register(SettingDef::new(owner, key, Kind::Bool, "UI", sub), Value::Int(0));
+        }
+        let names: Vec<String> = r.groups("ui").into_iter().map(|(n, _)| n).collect();
+        assert_eq!(names, ["Enhanced UIs", "Fixes", "Pause UI", "APM Counter", "Other Plugin"]);
+        assert_eq!(r.groups("UI")[2].1.len(), 2, "both Pause UI settings under the one heading");
+        let chat: Vec<String> = sample().groups("Chat").into_iter().map(|(n, _)| n).collect();
+        assert_eq!(chat, ["Behavior", "Style"], "other categories keep registration order");
     }
 
     #[test]
