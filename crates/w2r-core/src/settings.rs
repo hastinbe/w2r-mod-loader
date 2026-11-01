@@ -51,6 +51,9 @@ pub struct ActiveWhen {
     pub owner: Owner,
     pub key: String,
     pub test: Condition,
+    /// What a checkbox row shows while greyed (locked on or off); `None` shows its own value.
+    /// Personal build: a plugin's `key!=N:V` form.
+    pub shown: Option<i64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -187,6 +190,7 @@ impl SettingDef {
             owner,
             key: key.to_owned(),
             test,
+            shown: None,
         });
         self
     }
@@ -486,6 +490,12 @@ impl Registry {
             .is_some_and(|s| !when.test.holds(self.get(s, native).int()))
     }
 
+    /// What a greyed checkbox row shows instead of its own value (a locked row), if anything.
+    pub fn locked_value(&self, i: usize, native: &dyn Native) -> Option<i64> {
+        let when = self.records[i].def.active_when.as_ref()?;
+        when.shown.filter(|_| self.inactive(i, native))
+    }
+
     /// Every value as it is now, for undoing the screen's edits.
     pub fn snapshot(&self, native: &dyn Native) -> Vec<Value> {
         (0..self.records.len())
@@ -650,6 +660,23 @@ pub struct DeclaredSetting {
     pub active_when: String,
 }
 
+/// `key!=N`, `key=N`, either with `:V`: the key, the condition the row is active under, and the
+/// value a checkbox row shows while greyed. `None` for anything else (a plain key).
+fn parse_compare(s: &str) -> Option<(&str, Condition, Option<i64>)> {
+    let (cond, shown) = match s.split_once(':') {
+        Some((c, v)) => (c, Some(v.trim().parse::<i64>().ok()?)),
+        None => (s, None),
+    };
+    let (key, test) = if let Some((k, n)) = cond.split_once("!=") {
+        (k, Condition::IsNot(n.trim().parse().ok()?))
+    } else {
+        let (k, n) = cond.split_once('=')?;
+        (k, Condition::Is(n.trim().parse().ok()?))
+    };
+    let key = key.trim();
+    (!key.is_empty()).then_some((key, test, shown))
+}
+
 /// Turns one declaration into a [`SettingDef`] for plugin `id` (display name `name`), or the status
 /// `settings_declare` returns (docs/abi.md, "Declared settings"). `earlier` are the plugin's
 /// declarations so far; `valid_key` is the settings-key rule.
@@ -730,6 +757,35 @@ pub fn validate(
             owner: Owner::Host,
             key: host_key.to_owned(),
             test: Condition::On,
+            shown: None,
+        })
+    } else if d.active_when.contains('=') {
+        let Some((key, test, shown)) = parse_compare(&d.active_when) else {
+            return Err(W2R_E_INVALID);
+        };
+        // Personal build: `key!=N` (or `key=N`) on an earlier bool, int or choice, and `:V` for
+        // what a checkbox row shows while greyed (Pause Overlay: Pause Box locked on with Recolor).
+        let Some(e) = earlier.iter().find(|e| e.key == key) else {
+            return Err(W2R_E_NOT_FOUND);
+        };
+        let n = match test {
+            Condition::Is(n) | Condition::IsNot(n) => n,
+            Condition::On => return Err(W2R_E_INVALID),
+        };
+        let fits = match e.kind {
+            Kind::Bool => (0..=1).contains(&n),
+            Kind::Int => true,
+            Kind::Choice => (0..e.choices.len() as i64).contains(&n),
+            _ => false,
+        };
+        if !fits || shown.is_some_and(|v| kind != Kind::Bool || !(0..=1).contains(&v)) {
+            return Err(W2R_E_INVALID);
+        }
+        Some(ActiveWhen {
+            owner: Owner::Plugin(id.to_owned()),
+            key: key.to_owned(),
+            test,
+            shown,
         })
     } else {
         match earlier.iter().find(|e| e.key == d.active_when) {
@@ -737,6 +793,7 @@ pub fn validate(
                 owner: Owner::Plugin(id.to_owned()),
                 key: e.key.clone(),
                 test: Condition::On,
+                shown: None,
             }),
             Some(_) => return Err(W2R_E_INVALID),
             None => return Err(W2R_E_NOT_FOUND),
@@ -1185,6 +1242,7 @@ mod tests {
                 owner: plugin("w2r-chat"),
                 key: "on".to_owned(),
                 test: Condition::On,
+                shown: None,
             })
         );
         let mut d = decl(W2R_SETTING_INT, "b");
@@ -1201,10 +1259,43 @@ mod tests {
                 owner: Owner::Host,
                 key: "enhanced_create_screen".to_owned(),
                 test: Condition::On,
+                shown: None,
             })
         );
         let mut d = decl(W2R_SETTING_INT, "e");
         d.active_when = "host:nope".into();
+        assert_eq!(check(d, &earlier), Err(W2R_E_NOT_FOUND));
+    }
+
+    #[test]
+    fn active_when_compares_an_earlier_choice_and_can_lock_a_checkbox() {
+        let mut screen = decl(W2R_SETTING_CHOICE, "screen");
+        screen.choices = vec!["Default".into(), "Recolor".into(), "Tint".into()];
+        let earlier = [check(screen, &[]).unwrap()];
+        let mut d = decl(W2R_SETTING_BOOL, "box");
+        d.active_when = "screen!=1:1".into();
+        assert_eq!(
+            check(d, &earlier).unwrap().active_when,
+            Some(ActiveWhen {
+                owner: plugin("w2r-chat"),
+                key: "screen".to_owned(),
+                test: Condition::IsNot(1),
+                shown: Some(1),
+            })
+        );
+        let mut d = decl(W2R_SETTING_INT, "level");
+        d.active_when = "screen=2".into();
+        assert_eq!(check(d, &earlier).unwrap().active_when.unwrap().test, Condition::Is(2));
+        for bad in ["screen!=3", "screen!=x", "screen!=1:2"] {
+            let mut d = decl(W2R_SETTING_BOOL, "b");
+            d.active_when = bad.into();
+            assert_eq!(check(d, &earlier), Err(W2R_E_INVALID), "{bad}");
+        }
+        let mut d = decl(W2R_SETTING_INT, "i");
+        d.active_when = "screen!=1:1".into();
+        assert_eq!(check(d, &earlier), Err(W2R_E_INVALID), "only a checkbox can be locked");
+        let mut d = decl(W2R_SETTING_BOOL, "c");
+        d.active_when = "later!=1".into();
         assert_eq!(check(d, &earlier), Err(W2R_E_NOT_FOUND));
     }
 

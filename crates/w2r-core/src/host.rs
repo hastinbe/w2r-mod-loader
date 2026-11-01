@@ -1759,6 +1759,7 @@ mod tests {
                 owner: settings::Owner::Plugin("w2r-chat".into()),
                 key: "channels".into(),
                 test: settings::Condition::On,
+                shown: None,
             })
         );
 

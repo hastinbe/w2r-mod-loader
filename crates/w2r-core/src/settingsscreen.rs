@@ -1833,7 +1833,13 @@ fn draw_setting_row(
     if inactive {
         unsafe { (fns.disable_begin)(ctx) };
     }
-    let value = editor.get(i, native);
+    // A locked checkbox (personal build): greyed, showing the value it is locked to, and a click
+    // on it changes nothing.
+    let locked = editor.registry.locked_value(i, native);
+    let value = match locked {
+        Some(v) => Value::Int(v),
+        None => editor.get(i, native),
+    };
     match d.kind {
         Kind::Choice if !d.choices.is_empty() => {
             row(fns, ctx, ROW_HEIGHT, 2);
@@ -1867,7 +1873,7 @@ fn draw_setting_row(
             row(fns, ctx, ROW_HEIGHT, 1);
             let t = cstr(&caption);
             let mut flags: u32 = u32::from(value.int() != 0);
-            if unsafe { (fns.checkbox)(t.as_ptr().cast(), &mut flags, 1) } {
+            if unsafe { (fns.checkbox)(t.as_ptr().cast(), &mut flags, 1) } && locked.is_none() {
                 editor.set(i, Value::Int(i64::from(flags & 1 != 0)), native);
             }
         }
