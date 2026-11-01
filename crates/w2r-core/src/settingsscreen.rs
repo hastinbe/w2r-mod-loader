@@ -1833,7 +1833,7 @@ fn draw_setting_row(
     if inactive {
         unsafe { (fns.disable_begin)(ctx) };
     }
-    // A locked checkbox (personal build): greyed, showing the value it is locked to, and a click
+    // A locked checkbox: greyed, showing the value it is locked to, and a click
     // on it changes nothing.
     let locked = editor.registry.locked_value(i, native);
     let value = match locked {

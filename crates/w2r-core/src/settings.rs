@@ -18,7 +18,7 @@ use w2r_abi::{
 pub const DEFAULT_SUBCATEGORY: &str = "General";
 
 /// Heading order for a category, where a plugin's heading should sit between the host's own
-/// (plugins register after the host, so by registration order theirs come last). Personal build:
+/// (plugins register after the host, so by registration order theirs come last):
 /// Pause Pro's "Pause Pro UI" goes right after "Fixes" in the UI category.
 const HEADING_ORDER: &[(&str, &[&str])] = &[("UI", &["Enhanced UIs", "Fixes", "Pause Pro UI", "APM Counter"])];
 /// The `active_when` prefix that points at one of the host's settings instead of the plugin's own.
@@ -52,7 +52,7 @@ pub struct ActiveWhen {
     pub key: String,
     pub test: Condition,
     /// What a checkbox row shows while greyed (locked on or off); `None` shows its own value.
-    /// Personal build: a plugin's `key!=N:V` form.
+    /// A plugin's `key!=N:V` form.
     pub shown: Option<i64>,
 }
 
@@ -427,8 +427,7 @@ impl Registry {
 
     /// One category's shown settings, grouped by subcategory. Subcategories keep the order they
     /// were first registered in, which keeps related settings together, except where
-    /// `HEADING_ORDER` places a heading a plugin registers between the host's own (personal
-    /// build).
+    /// `HEADING_ORDER` places a heading a plugin registers between the host's own.
     pub fn groups(&self, category: &str) -> Vec<(String, Vec<usize>)> {
         let mut groups = self.groups_as_registered(category);
         if let Some((_, order)) = HEADING_ORDER.iter().find(|(c, _)| c.eq_ignore_ascii_case(category)) {
@@ -763,7 +762,7 @@ pub fn validate(
         let Some((key, test, shown)) = parse_compare(&d.active_when) else {
             return Err(W2R_E_INVALID);
         };
-        // Personal build: `key!=N` (or `key=N`) on an earlier bool, int or choice, and `:V` for
+        // `key!=N` (or `key=N`) on an earlier bool, int or choice, and `:V` for
         // what a checkbox row shows while greyed (Pause Pro: Pause Box locked on with Recolor).
         let Some(e) = earlier.iter().find(|e| e.key == key) else {
             return Err(W2R_E_NOT_FOUND);

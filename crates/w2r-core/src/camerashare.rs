@@ -381,7 +381,7 @@ mod live {
     }
 
     /// Sends `msg` to the machines `match_peer` accepts (all of them, or only net slot `only`);
-    /// how many it went to. Personal build: plugin messages during a match.
+    /// how many it went to. Plugin messages during a match.
     pub fn send_in_match(only: Option<u32>, msg: &[u8]) -> usize {
         let Some(g) = GAME.get() else { return 0 };
         let mut sent = 0;

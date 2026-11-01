@@ -965,7 +965,7 @@ mod cb {
                 return W2R_E_INVALID;
             }
             let services = &slot.shared.services;
-            // Personal build: in a networked match, plugin messages go to the other machines
+            // In a networked match, plugin messages go to the other machines
             // that run the mod, over the game's own send (as camera sharing's do).
             if !services.presence.in_lobby() && crate::camerashare::in_networked_match() {
                 let only = (slot_or_all != W2R_SLOT_ALL).then_some(slot_or_all);

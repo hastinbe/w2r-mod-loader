@@ -7,7 +7,7 @@
 //! the text) and the post-effect draw (0x63b0e0, where mode 1 and 2 pick the programs at +0x3c and
 //! +0x40), and for the pause box "VictoryPopupBuild" (0x547d70, its head through the dialog skin
 //! manager operand) and "DialogPopupRect" (0x547320, whole); add them to gen_signatures.py before
-//! regenerating. Personal build: "PauseButtonAction" (0x4f2740, whole) for the resume countdown,
+//! regenerating. "PauseButtonAction" (0x4f2740, whole) for the resume countdown,
 //! and "PlayUiSound" (0x4f9900, whole) for its tick.
 
 use super::{RelocSlot, Signature};

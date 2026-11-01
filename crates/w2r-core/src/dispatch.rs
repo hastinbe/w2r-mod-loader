@@ -182,7 +182,7 @@ impl Registry {
     /// active, subscribed and allowed to receive (`net.send`), and the sender announced the
     /// handshake. Anything else is dropped (docs/abi.md). Returns whether it was delivered.
     pub fn dispatch_peer(&self, sender: u32, msg: PluginMessage<'_>) -> bool {
-        // In the lobby from an announced peer (docs/abi.md); personal build: also in a networked
+        // In the lobby from an announced peer (docs/abi.md); also in a networked
         // match from a machine that runs the mod (announced in the lobby just left, still in).
         let in_lobby = self.shared.services.presence.in_lobby()
             && self.shared.services.roster.announced(sender);
