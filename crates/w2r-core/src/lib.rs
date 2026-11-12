@@ -11,6 +11,7 @@ mod director;
 mod obsjoin;
 mod liveapm;
 pub mod ping;
+pub mod mapdraw;
 pub mod pingtable;
 pub mod build_guard;
 pub mod chat;

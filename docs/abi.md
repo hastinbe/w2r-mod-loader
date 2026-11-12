@@ -182,6 +182,24 @@ browser, and `affects_simulation` stays the plugin's own declaration.
   first, every frame. `W2R_E_STATE` outside the callback; `W2R_E_INVALID` for `..`, a drive colon or
   more than 200 bytes. A folder with no maps gives a count of 0.
 
+## Drawing over the map
+
+A plugin may export `w2r_map_draw` (`W2rMapDrawFn`, looked up with `GetProcAddress` when it
+loads). The host then calls it every frame of a match or replay with a `W2rMapDraw` table, inside a
+window that covers the map view: anything drawn is clipped to the map view and sits under the HUD
+(the resource bar's text and the panels stay on top, as they do over the game's own unit bars).
+It runs under the host's crash guard: a fault disables the plugin, as for its other callbacks.
+
+| Field | Notes |
+|---|---|
+| `origin_x`, `origin_y` | the screen point of world pixel (0, 0): world (x, y) is on screen at `(origin_x + x, origin_y + y)` |
+| `view_x`, `view_y`, `view_w`, `view_h` | the map view on screen |
+| `fill_rect(ctx, x, y, w, h, colour)` | a filled rectangle in screen coordinates |
+| `text(ctx, x, y, w, h, text, colour)` | `text` centred in the rectangle, in the HUD's font |
+
+Colours are packed `0xAABBGGRR`, alpha honoured. The table is valid only during the call. A plugin
+without the export costs nothing; a plugin that has it is called only while the map view is up.
+
 ## Strings and untrusted data
 
 - `W2rStr` is UTF-8 and length-delimited, not NUL-terminated.

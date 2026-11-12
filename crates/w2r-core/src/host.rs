@@ -151,6 +151,8 @@ pub struct Slot {
     slow: Cell<u32>,
     /// The callback from `create_ui_register`, if any.
     create_ui: Cell<Option<CreateUiFn>>,
+    /// The plugin's `w2r_map_draw` export, if any.
+    map_draw: Cell<Option<w2r_abi::W2rMapDrawFn>>,
     /// True only while the plugin's `on_load` runs: `settings_declare` is refused elsewhere.
     loading: Cell<bool>,
     /// What the plugin declared with `settings_declare`, in order. Its `category` is empty
@@ -184,6 +186,7 @@ impl Slot {
             tag: peer::peer_tag(id),
             slow: Cell::new(0),
             create_ui: Cell::new(None),
+            map_draw: Cell::new(None),
             loading: Cell::new(false),
             declared: RefCell::new(Vec::new()),
             shared,
@@ -220,6 +223,15 @@ impl Slot {
 
     pub fn state(&self) -> State {
         self.state.borrow().clone()
+    }
+
+    /// The map-draw export, only while the plugin is active.
+    pub fn map_draw(&self) -> Option<w2r_abi::W2rMapDrawFn> {
+        if self.is_active() { self.map_draw.get() } else { None }
+    }
+
+    pub fn set_map_draw(&self, f: Option<w2r_abi::W2rMapDrawFn>) {
+        self.map_draw.set(f);
     }
 
     /// The create-screen callback, only while the plugin is active.

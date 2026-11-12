@@ -94,6 +94,8 @@ unsafe extern "C" fn detour(
         unsafe { crate::netpanel::before_hud(ctx, original) };
         // SAFETY: as above.
         unsafe { crate::ping::before_hud(ctx, original) };
+        // SAFETY: as above.
+        unsafe { crate::mapdraw::before_hud(ctx, original) };
     }
     crate::watchdog::mark(crate::watchdog::FRAME_GAME);
     let opened = unsafe { original(ctx, name, x, y, w, h, flags) };

@@ -37,6 +37,12 @@ impl Dll {
     pub fn module(&self) -> HMODULE {
         self.module
     }
+
+    /// The plugin's optional `w2r_map_draw` export.
+    pub fn map_draw(&self) -> Option<w2r_abi::W2rMapDrawFn> {
+        let sym = unsafe { GetProcAddress(self.module, w2r_abi::W2R_MAP_DRAW_SYMBOL.as_ptr().cast()) }?;
+        Some(unsafe { core::mem::transmute::<unsafe extern "system" fn() -> isize, w2r_abi::W2rMapDrawFn>(sym) })
+    }
 }
 
 fn entry_error(detail: String) -> LoadError {

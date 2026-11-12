@@ -940,6 +940,26 @@ pub fn map_sharing_settings() -> (bool, bool) {
     })
 }
 
+/// Whether any active plugin exports `w2r_map_draw`.
+pub fn map_draw_present() -> bool {
+    SESSION.with(|cell| {
+        cell.try_borrow().ok().is_some_and(|s| {
+            s.as_ref().is_some_and(|s| s.registry.slots().any(|slot| slot.map_draw().is_some()))
+        })
+    })
+}
+
+/// Calls every plugin's `w2r_map_draw` with `draw`. Main thread, from the frame hook.
+pub fn draw_map(draw: &w2r_abi::W2rMapDraw) {
+    SESSION.with(|cell| {
+        let Ok(session) = cell.try_borrow() else { return };
+        let Some(session) = session.as_ref() else { return };
+        for slot in session.registry.slots() {
+            session.registry.call_map_draw(slot, draw);
+        }
+    });
+}
+
 /// Whether any active plugin has registered a Create-screen callback.
 pub fn create_ui_present() -> bool {
     SESSION.with(|cell| {
@@ -1158,6 +1178,8 @@ fn start() -> Session {
         crate::netpanel::install(&symbols, &*log);
         #[cfg(target_arch = "x86")]
         crate::ping::install(image, &symbols, &*log);
+        #[cfg(target_arch = "x86")]
+        crate::mapdraw::install(&symbols, &*log);
         #[cfg(target_arch = "x86")]
         crate::camerashare::install(&symbols, &*log);
         #[cfg(target_arch = "x86")]

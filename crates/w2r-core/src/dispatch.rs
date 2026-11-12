@@ -94,8 +94,13 @@ impl Registry {
             self.shared.log.line(W2R_LOG_ERROR, id, &e.to_string());
         })?;
         let entry = dll.entry;
+        let map_draw = dll.map_draw();
         self.modules.push(dll);
-        self.load_entry_with_caps(id, entry, caps)
+        let loaded = self.load_entry_with_caps(id, entry, caps);
+        if let Ok(index) = loaded {
+            self.slots[index].set_map_draw(map_draw);
+        }
+        loaded
     }
 
     /// [`Registry::load_entry_with_caps`] with only the implicit capabilities.
@@ -253,6 +258,16 @@ impl Registry {
         }
         slot.note_duration(started.elapsed().as_millis(), "on_ui");
         true
+    }
+
+    /// Calls one active plugin's map-draw export with `draw`, under the guard; a fault disables it.
+    pub fn call_map_draw(&self, slot: &Slot, draw: &w2r_abi::W2rMapDraw) {
+        let Some(f) = slot.map_draw() else { return };
+        let started = std::time::Instant::now();
+        if let Err(fault) = guarded(|| unsafe { f(draw) }) {
+            slot.disable(format!("w2r_map_draw: {fault}"));
+        }
+        slot.note_duration(started.elapsed().as_millis(), "w2r_map_draw");
     }
 
     /// Calls one active plugin's create-screen callback with `ui`, under the guard; a fault

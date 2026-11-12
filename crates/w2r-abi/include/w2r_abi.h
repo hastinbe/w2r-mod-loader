@@ -255,6 +255,21 @@ typedef struct W2rHost {
 #define W2R_HOST_MAP_FOLDER_SIZE (offsetof(W2rHost, create_map_folder) + sizeof(void *))
 #define W2R_HOST_SETTINGS_DECLARE_SIZE (offsetof(W2rHost, settings_declare) + sizeof(void *))
 
+/* ---- map drawing ---------------------------------------------------------------------- */
+/* A plugin that exports `w2r_map_draw` is called every frame of a match or replay, just before
+   the HUD window, inside a window over the map view (clipped to it, under the HUD). Screen point of
+   world pixel (x, y) = (origin_x + x, origin_y + y). Colours are packed 0xAABBGGRR. */
+typedef struct W2rMapDraw {
+    uint32_t struct_size; /* W2R_MAP_DRAW_V1_SIZE */
+    void *ctx;
+    int32_t origin_x, origin_y;
+    float view_x, view_y, view_w, view_h;
+    void (W2R_CALL *fill_rect)(void *ctx, float x, float y, float w, float h, uint32_t colour);
+    void (W2R_CALL *text)(void *ctx, float x, float y, float w, float h, W2rStr text, uint32_t colour);
+} W2rMapDraw;
+#define W2R_MAP_DRAW_V1_SIZE ((uint32_t)sizeof(W2rMapDraw))
+typedef void (W2R_CALL *W2rMapDrawFn)(const W2rMapDraw *draw);
+
 /* ---- plugin table: returned by the plugin ---------------------------------------------- */
 typedef struct W2rPlugin {
     uint32_t struct_size;

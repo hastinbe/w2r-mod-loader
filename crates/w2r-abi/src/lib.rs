@@ -410,6 +410,33 @@ pub struct W2rPlugin {
 pub type W2rPluginMain = unsafe extern "C" fn(host: *const W2rHost) -> *const W2rPlugin;
 pub const W2R_PLUGIN_MAIN_SYMBOL: &core::ffi::CStr = c"w2r_plugin_main";
 
+/// Drawing over the map view. A plugin that exports
+/// `w2r_map_draw` (a [`W2rMapDrawFn`]) is called with this table every frame of a match or replay,
+/// just before the game's HUD window, inside a window that covers the map view; anything drawn is
+/// clipped to it and covered by the HUD. Screen point of world pixel (x, y): `(origin_x + x,
+/// origin_y + y)`. Colours are packed `0xAABBGGRR`.
+#[repr(C)]
+pub struct W2rMapDraw {
+    /// `W2R_MAP_DRAW_V1_SIZE`.
+    pub struct_size: u32,
+    pub ctx: *mut c_void,
+    pub origin_x: i32,
+    pub origin_y: i32,
+    /// The map view on screen.
+    pub view_x: f32,
+    pub view_y: f32,
+    pub view_w: f32,
+    pub view_h: f32,
+    pub fill_rect: unsafe extern "C" fn(ctx: *mut c_void, x: f32, y: f32, w: f32, h: f32, colour: u32),
+    /// `text` centred in the rectangle (screen coordinates, like `fill_rect`), in the HUD's font.
+    pub text: unsafe extern "C" fn(ctx: *mut c_void, x: f32, y: f32, w: f32, h: f32, text: W2rStr, colour: u32),
+}
+
+pub const W2R_MAP_DRAW_V1_SIZE: u32 = core::mem::size_of::<W2rMapDraw>() as u32;
+/// The optional export a plugin provides to draw over the map, named `w2r_map_draw`.
+pub type W2rMapDrawFn = unsafe extern "C" fn(draw: *const W2rMapDraw);
+pub const W2R_MAP_DRAW_SYMBOL: &core::ffi::CStr = c"w2r_map_draw";
+
 /// Minimum `struct_size` a version-1 `W2rPlugin` may report.
 pub const W2R_PLUGIN_V1_SIZE: u32 = core::mem::size_of::<W2rPlugin>() as u32;
 /// `struct_size` a version-1 host reports.
@@ -434,6 +461,9 @@ const _: () = {
     assert!(offset_of!(W2rPlugin, struct_size) == 0);
     assert!(offset_of!(W2rUi, struct_size) == 0);
     assert!(offset_of!(W2rEvent, struct_size) == 0);
+    assert!(offset_of!(W2rMapDraw, struct_size) == 0);
+    assert!(offset_of!(W2rMapDraw, fill_rect) == if size_of::<usize>() == 4 { 32 } else { 40 });
+    assert!(W2R_MAP_DRAW_V1_SIZE == if size_of::<usize>() == 4 { 40 } else { 56 });
     assert!(offset_of!(W2rStr, len) == size_of::<*const c_void>());
     assert!(size_of::<W2rStatus>() == 4);
     assert!(W2R_OK == 0);
