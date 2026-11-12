@@ -64,7 +64,9 @@ Classic / Automatic / Fixed and stores 2 / 0 / 1). Three stock options are one d
 flag bits each (health bars, resource bar alignment, portrait style); their bits stay registered
 and hidden so the ini still round-trips them. Keys the stock menu never shows are registered and
 hidden (the resolution pair, `mouse_size` on request, `name`, `tipnum`, the camera cluster pair,
-the two DOS-era keys). An unknown key is shown under Advanced / Unsorted rather than dropped.
+the two DOS-era keys). An unknown key is shown under Advanced / Unsorted rather than dropped. On the Gameplay page
+Health Bars comes last (the mode, then the position), so a plugin's rows about the health bars
+sit right under it.
 `using_classic` (flag bit 0x10, the graphics mode the next launch starts in, which F5 and the HUD
 button also set) is shown as Preferences / Display / **Classic Graphics**; a change is passed
 to the graphics hook (`graphicsmode.rs`), which, on the first frame of the next match (any kind,

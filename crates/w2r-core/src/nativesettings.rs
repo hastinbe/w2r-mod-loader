@@ -326,6 +326,15 @@ pub fn catalog(entries: &[Entry]) -> Vec<SettingDef> {
                     .active_if(Owner::Game, "healthbar_mode", Condition::IsNot(1));
             }
         }
+        // Health Bars goes last on the Gameplay page, the mode before the position, so a plugin
+        // that adds rows about the health bars (to that heading, or a heading of its own) sits
+        // right under it.
+        // Subcategories are shown in the order of their first shown setting.
+        let health = |d: &SettingDef| d.category == "Gameplay" && d.subcategory == "Health Bars";
+        let (mut tail, rest): (Vec<_>, Vec<_>) = defs.into_iter().partition(|d| health(d));
+        tail.sort_by_key(|d| d.key != "healthbar_mode");
+        defs = rest;
+        defs.extend(tail);
     }
     defs
 }
@@ -732,6 +741,25 @@ mod tests {
         assert_eq!(by("healthbar_mode").kind, Kind::Choice);
         assert_eq!(by("resourcebar_align").choices.len(), 3);
         assert_eq!(by("portrait_style").category, "Gameplay");
+    }
+
+    #[test]
+    fn health_bars_are_the_last_gameplay_group_mode_first() {
+        let defs = catalog(&[
+            entry(1, "healthbars_below", 0, 1, 0),
+            entry(2, "show_healthbars", 0, FLAG_SHOW_HEALTHBARS, 0),
+            entry(1, "use_grid_keys", 0, 1, 0),
+        ]);
+        let mut r = Registry::new();
+        for d in defs {
+            r.register(d, Value::Int(0));
+        }
+        let groups = r.groups("Gameplay");
+        let names: Vec<&str> = groups.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(names.last(), Some(&"Health Bars"), "{names:?}");
+        let rows = &groups.last().unwrap().1;
+        assert_eq!(r.def(rows[0]).key, "healthbar_mode");
+        assert_eq!(r.def(rows[1]).key, "healthbars_below");
     }
 
     #[test]
